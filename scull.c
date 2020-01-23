@@ -16,6 +16,16 @@ static int scull_minor = SCULL_MINOR;
 module_param(scull_major, int, 0444);
 module_param(scull_minor, int, 0444);
 static int scull_nr_devs = SCULL_DEV_COUNT;
+static int scull_quantum = SCULL_QUANTUM;
+static int scull_qset = SCULL_QSET;
+module_param(scull_quantum, int, 0444);
+module_param(scull_qset, int, 0444);
+
+struct scull_qset
+{
+    void **data;
+    struct scull_qset *next;
+};
 
 struct scull_dev
 {
@@ -27,6 +37,31 @@ struct scull_dev
 	struct semaphore sem;
 	struct cdev cdev;
 } scull_device;
+
+static int
+scull_trim(struct scull_dev *dev)
+{
+    struct scull_qset *next, *dptr;
+    int qset = dev->qset; /* "dev" is not NULL */
+    int i;
+
+    for (dptr = dev->data; dptr; dptr = next) { /* All the list items */
+        if (dptr->data) {
+            for (i = 0; i < qset; ++i) {
+                kfree(dptr->data[i];
+            }
+            kfree(dptr->data);
+            dptr->data = NULL;
+        }
+        next = dptr->next;
+        kfree(dptr);
+    }
+    dev->size = 0;
+    dev->quantum = scull_quantum;
+    dev->qset = scull_qset;
+    dev->data = NULL;
+    return 0;
+}
 
 static int
 scull_open(struct inode * inode, struct file * filp)
